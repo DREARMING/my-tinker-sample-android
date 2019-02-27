@@ -18,6 +18,7 @@ buildscript {
             changing = TINKER_VERSION?.endsWith("-SNAPSHOT")
             exclude group: 'com.android.tools.build', module: 'gradle'
         }
+        classpath 'com.meituan.android.walle:plugin:1.1.6'
     }
     configurations.all {
         it.resolutionStrategy.cacheDynamicVersionsFor(5, 'minutes')

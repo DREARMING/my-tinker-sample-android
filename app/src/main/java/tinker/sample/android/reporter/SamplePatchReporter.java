@@ -26,6 +26,8 @@ import java.io.File;
 import java.util.List;
 
 /**
+ * 该类用于在合成过程中，对流程或者日志的报告
+ *
  * optional, you can just use DefaultPatchReporter
  * Created by zhangshaowen on 16/4/8.
  */
@@ -38,6 +40,7 @@ public class SamplePatchReporter extends DefaultPatchReporter {
     @Override
     public void onPatchServiceStart(Intent intent) {
         super.onPatchServiceStart(intent);
+        //补丁合成Service启动
         SampleTinkerReport.onApplyPatchServiceStart();
     }
 
@@ -47,6 +50,11 @@ public class SamplePatchReporter extends DefaultPatchReporter {
         SampleTinkerReport.onApplyDexOptFail(t);
     }
 
+    /**
+     * 补丁合成过程中发生错误
+     * @param patchFile
+     * @param e
+     */
     @Override
     public void onPatchException(File patchFile, Throwable e) {
         super.onPatchException(patchFile, e);

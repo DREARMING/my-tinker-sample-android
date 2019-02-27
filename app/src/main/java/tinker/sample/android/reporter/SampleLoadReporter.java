@@ -38,12 +38,23 @@ public class SampleLoadReporter extends DefaultLoadReporter {
         super(context);
     }
 
+    /**
+     * 当检测到一个patch，准备进行合成，但是在校验这个dex的完整性、版本号等等情况发生错误，校验失败
+     * @param patchFile
+     * @param errorCode
+     */
     @Override
     public void onLoadPatchListenerReceiveFail(final File patchFile, int errorCode) {
         super.onLoadPatchListenerReceiveFail(patchFile, errorCode);
         SampleTinkerReport.onTryApplyFail(errorCode);
     }
 
+    /**
+     * 无论合成补丁的结果如何，都会回调该方法
+     * @param patchDirectory
+     * @param loadCode
+     * @param cost
+     */
     @Override
     public void onLoadResult(File patchDirectory, int loadCode, long cost) {
         super.onLoadResult(patchDirectory, loadCode, cost);

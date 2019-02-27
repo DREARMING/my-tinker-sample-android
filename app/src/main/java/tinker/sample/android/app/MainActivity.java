@@ -16,9 +16,12 @@
 
 package tinker.sample.android.app;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Typeface;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
@@ -29,17 +32,25 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.meituan.android.walle.ChannelInfo;
+import com.meituan.android.walle.WalleChannelReader;
 import com.tencent.tinker.lib.library.TinkerLoadLibrary;
 import com.tencent.tinker.lib.tinker.Tinker;
 import com.tencent.tinker.lib.tinker.TinkerInstaller;
 import com.tencent.tinker.loader.shareutil.ShareConstants;
 import com.tencent.tinker.loader.shareutil.ShareTinkerInternals;
 
+import java.util.List;
+import java.util.Map;
+
+import pub.devrel.easypermissions.AfterPermissionGranted;
+import pub.devrel.easypermissions.EasyPermissions;
 import tinker.sample.android.R;
 import tinker.sample.android.util.Utils;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements EasyPermissions.PermissionCallbacks {
     private static final String TAG = "Tinker.MainActivity";
 
     @Override
@@ -51,11 +62,21 @@ public class MainActivity extends AppCompatActivity {
         Log.e(TAG, "i am on onCreate string:" + getResources().getString(R.string.test_resource));
 //        Log.e(TAG, "i am on patch onCreate");
 
+        requestPermission();
+
         Button loadPatchButton = (Button) findViewById(R.id.loadPatch);
 
         loadPatchButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                /**
+                 * 1. 当下载完补丁后，需要调用下面的方法，对补丁进行校验
+                 * 2. 校验通过后，补丁dex与原dex进行全量合成：
+                 *    sdk < 28,通过启动一个没有通知提示的前台服务进行补丁合成（在patch进程）
+                 *    sdk >= 28，因为服务很容易被杀死，这里是通过 Job 来解决的。
+                 * 3. 无论结果如何，2的操作完毕后，会回调 SampleResultService来让主进程知道现在patch进程已经完成操作
+                 * 4. 杀掉补丁进程，等待机会对应用的进程进行杀掉，使补丁生效（1. 屏幕关掉，2.切换到后台）
+                 */
                 TinkerInstaller.onReceiveUpgradePatch(getApplicationContext(), Environment.getExternalStorageDirectory().getAbsolutePath() + "/patch_signed_7zip.apk");
             }
         });
@@ -105,6 +126,46 @@ public class MainActivity extends AppCompatActivity {
                 showInfo(MainActivity.this);
             }
         });
+
+       Button testPatchButton = (Button) findViewById(R.id.bt_patch);
+        testPatchButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                TinkerLoadLibrary.installNavitveLibraryABI(getApplicationContext(), Build.CPU_ABI);
+                //记得先调用上面的语句，再执行load库操作。
+                System.loadLibrary("native-lib");
+
+                /*Toast.makeText(MainActivity.this,
+                        "test patch so :" + stringFromJNI(), Toast.LENGTH_SHORT)
+                        .show();*/
+                Log.d(TAG, "test patch so :" + stringFromJNI());
+                ChannelInfo channelInfo = WalleChannelReader.getChannelInfo(MainActivity.this);
+                if(channelInfo != null){
+                    String channelName = channelInfo.getChannel();
+                    Map<String, String> keyMap = channelInfo.getExtraInfo();
+                    String channelId = keyMap.get("channelId");
+                    Log.d(TAG,"渠道号:" + channelName + " , channel id:" + channelId);
+                    Toast.makeText(MainActivity.this, "渠道号:" + channelName + " , channel id:" + channelId, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        Button testJoinButton = (Button) findViewById(R.id.bt_join);
+        testJoinButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, TestActivity.class);
+                startActivity(intent);
+            }
+        });
+    }
+
+    @AfterPermissionGranted(10)
+    private void requestPermission() {
+        String[] permissions = new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE};
+        if(!EasyPermissions.hasPermissions(this, permissions)){
+            EasyPermissions.requestPermissions(this, "", 10, permissions);
+        }
     }
 
     public boolean showInfo(Context context) {
@@ -164,4 +225,17 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
         Utils.setBackground(true);
     }
+
+    @Override
+    public void onPermissionsGranted(int requestCode, List<String> perms) {
+        Log.d(TAG, "permission granted");
+    }
+
+    @Override
+    public void onPermissionsDenied(int requestCode, List<String> perms) {
+
+    }
+
+    public native String stringFromJNI();
+
 }

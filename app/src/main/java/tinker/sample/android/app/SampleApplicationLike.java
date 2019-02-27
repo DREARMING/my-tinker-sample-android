@@ -95,6 +95,8 @@ public class SampleApplicationLike extends DefaultApplicationLike {
         //or you can put com.tencent.tinker.** to main dex
         TinkerManager.installTinker(this);
         Tinker tinker = Tinker.with(getApplication());
+
+        //Tinker 会在 TinkerApplication 中，反射 TinkerLoader 对 合成的dex 进行加载操作，替换掉原先的 elements
     }
 
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
